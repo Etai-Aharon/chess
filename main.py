@@ -1,6 +1,7 @@
 # project : chess game
 
 from kivy.config import Config
+
 Config.set('graphics', 'width', '640')
 Config.set('graphics', 'height', '640')
 from kivy.uix.behaviors import ButtonBehavior
@@ -17,16 +18,86 @@ class GamePiece(ButtonBehavior, Image):
     def on_press(self):
         """defines behaviour of game piece when pressed"""
         piece = self
-        global move_options, piece_selected
-        piece_selected = piece
-        my_pos_id = -1
-        for key in game_arrey:
-            if game_arrey[key].get_pos() == self.pos:
-                my_pos_id = game_arrey[key].get_pos_id()
-                break
+        global current_move_options, piece_selected, current_attack_options  #, piece_attacked
 
-        arrey_map = get_arrey_map()
-        move_options = actions.piece_options(self.source, my_pos_id, arrey_map)
+        """check condition : a piece on the board was selected"""
+        if piece_selected is not None and len(current_attack_options) is not 0:
+            """check condition : self location is an optional move for the piece chosen"""
+            for key in game_arrey:
+                if game_arrey[key].get_pos() == self.pos and game_arrey[key].get_pos_id() in current_attack_options:
+                    # piece_attacked = self
+                    game_arrey[key].clear_piece()
+                    self.set_position([800, 800])
+                    # piece_attacked.set_position([800, 800])
+                    """find current location of chosen piece on the board, and clear that position"""
+                    for i in game_arrey:
+                        if game_arrey[i].get_pos_id() == piece_selected.get_my_pos_id():
+                            game_arrey[i].clear_piece()
+                    """take the move : chosen piece move into current location"""
+                    piece_selected.set_position(game_arrey[key].get_pos())
+                    """set pointer of current location (field) to the piece that moved in"""
+                    game_arrey[key].set_piece(piece_selected)
+                    # break
+                # elif game_arrey[key].get_pos() == self.pos and game_arrey[key].get_pos_id() not in current_attack_options:
+                #     piece_selected = piece
+                #     my_pos_id = -1
+                #     for key in game_arrey:
+                #         if game_arrey[key].get_pos() == self.pos:
+                #             my_pos_id = game_arrey[key].get_pos_id()
+                #
+                #
+                #     arrey_map = get_arrey_map()
+                #     current_move_options = actions.move_options(self.source, my_pos_id, arrey_map)
+                #     current_attack_options = actions.attack_options(self.source, my_pos_id, arrey_map)
+                #     print('debug main cur_attck_opt = ', current_attack_options)
+                #     break
+
+
+            """clear/empty global variables : piece_selected, move_options
+            game ready for next move (choose new piece to move)"""
+            piece_selected = None
+            current_move_options = None
+            current_attack_options = None
+
+        else:
+        # elif piece_selected is None:
+            """case : no piece is currently selected --> piece pressed is set as new selected piece"""
+        # if
+            piece_selected = piece
+            my_pos_id = -1
+            for key in game_arrey:
+                if game_arrey[key].get_pos() == self.pos:
+                    my_pos_id = game_arrey[key].get_pos_id()
+                    break
+
+            arrey_map = get_arrey_map()
+            current_move_options = actions.move_options(self.source, my_pos_id, arrey_map)
+            current_attack_options = actions.attack_options(self.source, my_pos_id, arrey_map)
+            print('debug main cur_attck_opt = ', current_attack_options)
+
+        """case : a piece is currently selected & pressed piece is in attack options -->
+        --> piece pressed is eaten by selected piece"""
+        # if piece_selected is not None:
+        #     if piece_selected.get_my_pos_id() in current_attack_options:
+
+        # """check condition : a piece on the board was selected"""
+        # if piece_selected is not None:
+        #     """check condition : self location is an optional move for the piece chosen"""
+        #     for key in game_arrey:
+        #         if game_arrey[key].get_pos() == self.pos and game_arrey[key].get_pos_id() in current_attack_options:
+        #             """find current location of chosen piece on the board, and clear that position"""
+        #             for i in game_arrey:
+        #                 if game_arrey[i].get_pos_id() == piece_selected.get_my_pos_id():
+        #                     game_arrey[i].clear_piece()
+        #             """take the move : chosen piece move into current location"""
+        #             piece_selected.set_position(self.pos)
+        #             """set pointer of current location (field) to the piece that moved in"""
+        #             game_arrey[key].set_piece(piece_selected)
+        #             break
+        #     """clear/empty global variables : piece_selected, move_options
+        #     game ready for next move (choose new piece to move)"""
+        #     piece_selected = None
+        #     current_move_options = None
 
     def set_position(self, position):
         """receives position coordinates on board, and set the game piece at that position"""
@@ -44,8 +115,12 @@ class GamePiece(ButtonBehavior, Image):
 
 """set global variables"""
 frameinfo = getframeinfo(currentframe())
-piece_selected = GamePiece()
-move_options = []
+# piece_selected = GamePiece()
+piece_selected = None
+# piece_attacked = GamePiece()
+current_move_options = []
+current_attack_options = []
+turn = 0
 
 
 class field(ButtonBehavior, Image):
@@ -60,6 +135,7 @@ class field(ButtonBehavior, Image):
         holds pointer to the GamePiece object at current location ( = None when location is empty)
     button_color : bool
         determines each location background color (True --> light / False --> dark)"""
+
     def __init__(self, x, y, color, **kwargs):
         super(field, self).__init__(**kwargs)
         self.position = [x, y]
@@ -107,6 +183,7 @@ class field(ButtonBehavior, Image):
         happens when a piece is moving OUT OF current location"""
         self.piece_in_field = None
 
+
     def on_press(self):
         """defines behaviour of game field when pressed"""
         if self.source == 'Images/light_field.png':
@@ -114,20 +191,20 @@ class field(ButtonBehavior, Image):
         elif self.source == 'Images/dark_field.png':
             self.source = 'Images/dark_field_pressed.png'
 
-        global piece_selected, move_options
+        global piece_selected, current_move_options
 
         """CASE : a piece on the board was selected (previous to current click, user chose a piece)
         check if current location is optional for that piece to move into
         if so : the move is taken"""
 
         # for debug :
-        print('debug : ', piece_selected, move_options)
+        print('debug : ', piece_selected, current_move_options, current_attack_options)
 
         """check condition : a piece on the board was selected"""
         if piece_selected is not None:
             """check condition : self location is an optional move for the piece chosen"""
             for key in game_arrey:
-                if game_arrey[key].get_pos() == self.position and game_arrey[key].get_pos_id() in move_options:
+                if game_arrey[key].get_pos() == self.position and game_arrey[key].get_pos_id() in current_move_options:
                     """find current location of chosen piece on the board, and clear that position"""
                     for i in game_arrey:
                         if game_arrey[i].get_pos_id() == piece_selected.get_my_pos_id():
@@ -140,7 +217,7 @@ class field(ButtonBehavior, Image):
             """clear/empty global variables : piece_selected, move_options
             game ready for next move (choose new piece to move)"""
             piece_selected = None
-            move_options = None
+            current_move_options = None
 
     def on_release(self):
         """defines behaviour of game field when released"""
@@ -161,7 +238,7 @@ id = 1
 for j in range(8):
     for i in range(8):
         current = raw + str(line)
-        game_arrey[current] = field(x*80, y, color)
+        game_arrey[current] = field(x * 80, y, color)
         game_arrey[current].set_pos_id(id)
         id += 1
         x += 1
@@ -184,6 +261,7 @@ def get_pos_by_index(index):
         if game_arrey[key].get_pos_id() == index:
             return key
     return 0
+
 
 def get_arrey_map():
     arrey_map = {}
@@ -228,7 +306,7 @@ class chess_board(App):
                 A.add_widget(self.piece)
 
             # set all white rooks in staring position
-            elif position in ('A1',  'H1'):
+            elif position in ('A1', 'H1'):
                 self.piece = GamePiece(source='Images/w_rook.png')
                 self.piece.size_hint = (0.120, 0.120)
                 self.piece.pos = game_arrey[position].get_pos()
@@ -236,7 +314,7 @@ class chess_board(App):
                 A.add_widget(self.piece)
 
             # set all white knights in staring position
-            elif position in ('B1',  'G1'):
+            elif position in ('B1', 'G1'):
                 self.piece = GamePiece(source='Images/w_knight.png')
                 self.piece.size_hint = (0.120, 0.120)
                 self.piece.pos = game_arrey[position].get_pos()
@@ -244,7 +322,7 @@ class chess_board(App):
                 A.add_widget(self.piece)
 
             # set all white bishops in staring position
-            elif position in ('C1',  'F1'):
+            elif position in ('C1', 'F1'):
                 self.piece = GamePiece(source='Images/w_bishop.png')
                 self.piece.size_hint = (0.120, 0.120)
                 self.piece.pos = game_arrey[position].get_pos()
@@ -276,7 +354,7 @@ class chess_board(App):
                 A.add_widget(self.piece)
 
             # set all black rooks in staring position
-            elif position in ('A8',  'H8'):
+            elif position in ('A8', 'H8'):
                 self.piece = GamePiece(source='Images/b_rook.png')
                 self.piece.size_hint = (0.120, 0.120)
                 self.piece.pos = game_arrey[position].get_pos()
@@ -284,7 +362,7 @@ class chess_board(App):
                 A.add_widget(self.piece)
 
             # set all black knights in staring position
-            elif position in ('B8',  'G8'):
+            elif position in ('B8', 'G8'):
                 self.piece = GamePiece(source='Images/b_knight.png')
                 self.piece.size_hint = (0.120, 0.120)
                 self.piece.pos = game_arrey[position].get_pos()
@@ -292,7 +370,7 @@ class chess_board(App):
                 A.add_widget(self.piece)
 
             # set all black bishops in staring position
-            elif position in ('C8',  'F8'):
+            elif position in ('C8', 'F8'):
                 self.piece = GamePiece(source='Images/b_bishop.png')
                 self.piece.size_hint = (0.120, 0.120)
                 self.piece.pos = game_arrey[position].get_pos()
@@ -320,4 +398,3 @@ class chess_board(App):
 
 if __name__ == "__main__":
     chess_board().run()
-
