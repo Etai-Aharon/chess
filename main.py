@@ -18,12 +18,21 @@ class GamePiece(ButtonBehavior, Image):
     def on_press(self):
         """defines behaviour of game piece when pressed"""
         piece = self
-        global current_move_options, piece_selected, current_attack_options  #, piece_attacked
+        global current_move_options, piece_selected, current_attack_options  # , piece_attacked
 
-        """check condition : a piece on the board was selected"""
-        if piece_selected is not None and len(current_attack_options) is not 0 and ((str(self.source).__contains__('w_') and str(piece_selected.source).__contains__('b_')) or (str(self.source).__contains__('b_') and str(piece_selected.source).__contains__('w_'))):
-            """check condition : self location is an optional move for the piece chosen"""
-            print('debug --- in condition line 26 : \n piece_selected is : ', piece_selected, '\npiece selected source is : ', piece_selected.source)
+        """check condition : a piece on the board was selected 
+        & selected piece has attack options 
+        & the two pieces are not of same color """
+        if piece_selected is not None \
+                and len(current_attack_options) is not 0 \
+                and ((str(self.source).__contains__('w_')
+                      and str(piece_selected.source).__contains__('b_'))
+                     or (str(self.source).__contains__('b_')
+                         and str(piece_selected.source).__contains__('w_'))):
+
+            """check condition : self location is an optional move (attack) for the piece chosen"""
+            # print('debug --- in condition line 26 : \n piece_selected is : ', piece_selected,
+            #       '\npiece selected source is : ', piece_selected.source)
             for key in game_arrey:
                 if game_arrey[key].get_pos() == self.pos and game_arrey[key].get_pos_id() in current_attack_options:
                     # piece_attacked = self
@@ -39,9 +48,11 @@ class GamePiece(ButtonBehavior, Image):
                     """set pointer of current location (field) to the piece that moved in"""
                     game_arrey[key].set_piece(piece_selected)
                     # break
-                elif game_arrey[key].get_pos() == self.pos and game_arrey[key].get_pos_id() not in current_attack_options:
-                    """case : no piece is currently selected --> piece pressed is set as new selected piece"""
-                    # if
+
+                    """check condition : self location is NOT an optional move (attack) for the piece chosen
+                    --> piece pressed is set as new selected piece"""
+                elif game_arrey[key].get_pos() == self.pos \
+                        and game_arrey[key].get_pos_id() not in current_attack_options:
                     piece_selected = self
                     my_pos_id = -1
                     for j in game_arrey:
@@ -55,31 +66,13 @@ class GamePiece(ButtonBehavior, Image):
                     print('debug main cur_attck_opt inside condition (55) = ', current_attack_options)
                     print('piece selcted = ', piece_selected, '\ncurrent move options = ', current_move_options)
                     print('data send = ', self.source, my_pos_id, arrey_map)
-                # elif game_arrey[key].get_pos() == self.pos and game_arrey[key].get_pos_id() not in current_attack_options:
-                #     piece_selected = piece
-                #     my_pos_id = -1
-                #     for key in game_arrey:
-                #         if game_arrey[key].get_pos() == self.pos:
-                #             my_pos_id = game_arrey[key].get_pos_id()
-                #
-                #
-                #     arrey_map = get_arrey_map()
-                #     current_move_options = actions.move_options(self.source, my_pos_id, arrey_map)
-                #     current_attack_options = actions.attack_options(self.source, my_pos_id, arrey_map)
-                #     print('debug main cur_attck_opt = ', current_attack_options)
-                #     break
-
-
-            """clear/empty global variables : piece_selected, move_options
-            game ready for next move (choose new piece to move)"""
-            piece_selected = None
-            current_move_options = None
-            current_attack_options = None
 
         else:
-        # elif piece_selected is None:
-            """case : no piece is currently selected --> piece pressed is set as new selected piece"""
-        # if
+            """case not matching other condition :
+            no piece is currently selected 
+            OR selected piece has NO attack options 
+            OR the two pieces are of same color
+            --> piece pressed is set as new selected piece"""
             piece_selected = self
             my_pos_id = -1
             for key in game_arrey:
@@ -94,29 +87,7 @@ class GamePiece(ButtonBehavior, Image):
             print('piece selcted = ', piece_selected, '\ncurrent move options = ', current_move_options)
             print('data send = ', self.source, my_pos_id, arrey_map)
 
-        """case : a piece is currently selected & pressed piece is in attack options -->
-        --> piece pressed is eaten by selected piece"""
-        # if piece_selected is not None:
-        #     if piece_selected.get_my_pos_id() in current_attack_options:
-
-        # """check condition : a piece on the board was selected"""
-        # if piece_selected is not None:
-        #     """check condition : self location is an optional move for the piece chosen"""
-        #     for key in game_arrey:
-        #         if game_arrey[key].get_pos() == self.pos and game_arrey[key].get_pos_id() in current_attack_options:
-        #             """find current location of chosen piece on the board, and clear that position"""
-        #             for i in game_arrey:
-        #                 if game_arrey[i].get_pos_id() == piece_selected.get_my_pos_id():
-        #                     game_arrey[i].clear_piece()
-        #             """take the move : chosen piece move into current location"""
-        #             piece_selected.set_position(self.pos)
-        #             """set pointer of current location (field) to the piece that moved in"""
-        #             game_arrey[key].set_piece(piece_selected)
-        #             break
-        #     """clear/empty global variables : piece_selected, move_options
-        #     game ready for next move (choose new piece to move)"""
-        #     piece_selected = None
-        #     current_move_options = None
+        print('debug 121: ', piece_selected, current_move_options, current_attack_options)
 
     def set_position(self, position):
         """receives position coordinates on board, and set the game piece at that position"""
@@ -202,7 +173,6 @@ class field(ButtonBehavior, Image):
         happens when a piece is moving OUT OF current location"""
         self.piece_in_field = None
 
-
     def on_press(self):
         """defines behaviour of game field when pressed"""
         if self.source == 'Images/light_field.png':
@@ -210,14 +180,14 @@ class field(ButtonBehavior, Image):
         elif self.source == 'Images/dark_field.png':
             self.source = 'Images/dark_field_pressed.png'
 
-        global piece_selected, current_move_options
+        global piece_selected, current_move_options, current_attack_options
 
         """CASE : a piece on the board was selected (previous to current click, user chose a piece)
         check if current location is optional for that piece to move into
         if so : the move is taken"""
 
         # for debug :
-        print('debug : ', piece_selected, current_move_options, current_attack_options)
+        print('debug 221: ', piece_selected, current_move_options, current_attack_options)
 
         """check condition : a piece on the board was selected"""
         if piece_selected is not None:
