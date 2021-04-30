@@ -18,7 +18,7 @@ class GamePiece(ButtonBehavior, Image):
     def on_press(self):
         """defines behaviour of game piece when pressed"""
         piece = self
-        global current_move_options, piece_selected, current_attack_options  # , piece_attacked
+        global current_move_options, piece_selected, current_attack_options, turn
 
         """check condition : a piece on the board was selected 
         & selected piece has attack options 
@@ -26,9 +26,9 @@ class GamePiece(ButtonBehavior, Image):
         if piece_selected is not None \
                 and len(current_attack_options) is not 0 \
                 and ((str(self.source).__contains__('w_')
-                      and str(piece_selected.source).__contains__('b_'))
+                      and str(piece_selected.source).__contains__('b_') and turn)
                      or (str(self.source).__contains__('b_')
-                         and str(piece_selected.source).__contains__('w_'))):
+                         and str(piece_selected.source).__contains__('w_') and not turn)):
 
             """check condition : self location is an optional move (attack) for the piece chosen"""
             # print('debug --- in condition line 26 : \n piece_selected is : ', piece_selected,
@@ -47,12 +47,15 @@ class GamePiece(ButtonBehavior, Image):
                     piece_selected.set_position(game_arrey[key].get_pos())
                     """set pointer of current location (field) to the piece that moved in"""
                     game_arrey[key].set_piece(piece_selected)
+                    turn = not turn
                     # break
 
                     """check condition : self location is NOT an optional move (attack) for the piece chosen
                     --> piece pressed is set as new selected piece"""
                 elif game_arrey[key].get_pos() == self.pos \
-                        and game_arrey[key].get_pos_id() not in current_attack_options:
+                        and game_arrey[key].get_pos_id() not in current_attack_options \
+                        and ((str(self.source).__contains__('w_') and not turn)
+                             or (str(self.source).__contains__('b_') and turn)):
                     piece_selected = self
                     my_pos_id = -1
                     for j in game_arrey:
@@ -67,7 +70,8 @@ class GamePiece(ButtonBehavior, Image):
                     print('piece selcted = ', piece_selected, '\ncurrent move options = ', current_move_options)
                     print('data send = ', self.source, my_pos_id, arrey_map)
 
-        else:
+        elif ((str(self.source).__contains__('w_') and not turn)
+              or (str(self.source).__contains__('b_') and turn)):
             """case not matching other condition :
             no piece is currently selected 
             OR selected piece has NO attack options 
@@ -180,7 +184,7 @@ class field(ButtonBehavior, Image):
         elif self.source == 'Images/dark_field.png':
             self.source = 'Images/dark_field_pressed.png'
 
-        global piece_selected, current_move_options, current_attack_options
+        global piece_selected, current_move_options, current_attack_options, turn
 
         """CASE : a piece on the board was selected (previous to current click, user chose a piece)
         check if current location is optional for that piece to move into
@@ -202,6 +206,7 @@ class field(ButtonBehavior, Image):
                     piece_selected.set_position(self.position)
                     """set pointer of current location (field) to the piece that moved in"""
                     game_arrey[key].set_piece(piece_selected)
+                    turn = not turn
                     break
             """clear/empty global variables : piece_selected, move_options
             game ready for next move (choose new piece to move)"""
